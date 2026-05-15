@@ -27,4 +27,5 @@ urlpatterns = [
     path('view/<slug:slug>/update/', views.update_document, name='update_document'),
     path('view/<slug:slug>/upload-version/', views.upload_new_version, name='upload_version'),
     path('view/<slug:slug>/delete-version/<int:version_id>/', views.delete_version, name='delete_version'),
+     path('versions/restore/<int:version_id>/', views.restore_version, name='restore_version'),
 ]

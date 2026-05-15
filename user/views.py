@@ -551,7 +551,7 @@ def create_document_view(request):
             messages.error(request, f"Type de fichier non supporté: {file_ext}")
             return redirect('create_document')
         
-        # ✅ Création du document - Django sauvegarde automatiquement le fichier
+        # ✅ Création du document
         document = Document.objects.create(
             owner=request.user,
             title=title,
@@ -569,53 +569,21 @@ def create_document_view(request):
             permission_types=','.join(permission_types)
         )
         
-        # Set pour stocker tous les utilisateurs qui auront accès
-        users_with_access = set()
-        users_with_access.add(request.user)
-        
-        # Si diffusion globale
-        if 'global' in permission_types:
-            all_users = User.objects.filter(statut=True)
-            users_with_access.update(all_users)
-        
-        # Si diffusion par département
+        # ✅ Gestion des départements (sélection multiple)
         if 'department' in permission_types:
             departments = request.POST.getlist('departments')
             if departments:
-                permission.departments.set(Department.objects.filter(id__in=departments))
-                
-                for dept_id in departments:
-                    try:
-                        dept = Department.objects.get(id=dept_id)
-                        # Membres du département
-                        members = UserDepartment.objects.filter(department=dept).select_related('user')
-                        for member in members:
-                            users_with_access.add(member.user)
-                        # Responsable du département
-                        if dept.head:
-                            users_with_access.add(dept.head)
-                    except Department.DoesNotExist:
-                        pass
+                # Filtrer les IDs valides
+                valid_depts = Department.objects.filter(id__in=departments)
+                permission.departments.set(valid_depts)
         
-        # Si diffusion spécifique
+        # ✅ Gestion des utilisateurs spécifiques (sélection multiple)
         if 'specific' in permission_types:
             users = request.POST.getlist('users')
             if users:
-                specific_users = User.objects.filter(id__in=users)
-                permission.users.set(specific_users)
-                users_with_access.update(specific_users)
-        
-        # Créer des notifications
-        notification_count = 0
-        for user in users_with_access:
-            if user != request.user:
-                Notification.objects.create(
-                    user=user,
-                    title="Nouveau document partagé",
-                    message=f"{request.user.full_name} a partagé '{title}' avec vous.",
-                    type=Notification.Type.INFO
-                )
-                notification_count += 1
+                # Filtrer les IDs valides
+                valid_users = User.objects.filter(id__in=users)
+                permission.users.set(valid_users)
         
         # Journalisation
         ActivityLog.objects.create(
@@ -638,6 +606,7 @@ def create_document_view(request):
         'departments': departments,
         'permission_type_choices': DocumentPermission.PermissionType.choices
     })
+
 
 @login_required
 def update_document_permissions(request, slug):
@@ -845,6 +814,8 @@ def update_document(request, slug):
 @require_http_methods(["POST"])
 def upload_new_version(request, slug):
     """Uploader une nouvelle version d'un document"""
+    import os
+    
     document = get_object_or_404(Document, slug=slug, owner=request.user)
     
     new_file = request.FILES.get('new_file')
@@ -867,61 +838,52 @@ def upload_new_version(request, slug):
         messages.error(request, "Fichier trop volumineux (max 100 MB)")
         return redirect('view_document', slug=document.slug)
     
-    # ✅ Récupérer la prochaine version numéro
+    # Récupérer la prochaine version numéro
     last_version = document.versions.order_by('-version_number').first()
     current_version_number = (last_version.version_number if last_version else 0) + 1
     
-    # ✅ Sauvegarder l'ancien fichier SEULEMENT S'IL EXISTE
+    # ✅ Sauvegarder l'ancienne version (si elle existe)
     old_file_saved = False
+    old_file_path = None
+    
     try:
         if document.file and hasattr(document.file, 'path') and document.file.name:
-            import os
             if os.path.exists(document.file.path):
-                # Calculer le hash du fichier
-                sha256_hash = hashlib.sha256()
-                document.file.open('rb')
-                for chunk in document.file.chunks():
-                    sha256_hash.update(chunk)
-                document.file.close()
-                file_hash = sha256_hash.hexdigest()
-                
-                # Sauvegarder la version actuelle
+                # Sauvegarder la version actuelle dans DocumentVersion
                 DocumentVersion.objects.create(
                     document=document,
                     version_number=current_version_number,
-                    file=document.file,
+                    file=document.file,  # Copie l'ancien fichier
                     file_size=document.file_size,
-                    file_hash=file_hash,
                     uploaded_by=request.user,
                     note=version_note,
                     changes_summary=changes_summary
                 )
                 old_file_saved = True
-    except (ValueError, OSError, AttributeError):
-        # L'ancien fichier n'existe pas, on ne sauvegarde pas de version
-        pass
+    except (ValueError, OSError, AttributeError) as e:
+        print(f"Erreur lors de la sauvegarde de l'ancienne version: {e}")
     
     # ✅ Mettre à jour le document avec le nouveau fichier
-    old_file = document.file
+    # Supprimer l'ancien fichier physique
+    if old_file_saved and document.file:
+        try:
+            document.file.delete(save=False)
+        except:
+            pass
+    
+    # Assigner le nouveau fichier
     document.file = new_file
     document.file_size = new_file.size
     document.file_type = new_file.content_type or 'application/octet-stream'
     document.updated_at = timezone.now()
-    document.save()
+    document.save()  # ← Ceci sauvegarde le nouveau fichier sur le disque
     
-    # ✅ Supprimer l'ancien fichier SEULEMENT S'IL EXISTE
-    if old_file_saved and old_file:
-        try:
-            old_file.delete()
-        except:
-            pass
-    
-    # ✅ Journalisation
+    # Journalisation
     if old_file_saved:
         ActivityLog.objects.create(
             user=request.user,
             action=ActivityLog.Action.EDIT,
-            description=f"Nouvelle version v{current_version_number + 1} du document: {document.title} (version précédente sauvegardée)",
+            description=f"Nouvelle version v{current_version_number + 1} du document: {document.title}",
             document=document,
             ip_address=get_client_ip(request)
         )
@@ -930,7 +892,7 @@ def upload_new_version(request, slug):
         ActivityLog.objects.create(
             user=request.user,
             action=ActivityLog.Action.EDIT,
-            description=f"Mise à jour du document: {document.title} (aucune version précédente)",
+            description=f"Mise à jour du document: {document.title}",
             document=document,
             ip_address=get_client_ip(request)
         )
@@ -977,34 +939,63 @@ def restore_version(request, version_id):
     version = get_object_or_404(DocumentVersion, id=version_id)
     document = version.document
     
+    # Vérifier que l'utilisateur est le propriétaire
     if document.owner != request.user:
         messages.error(request, "Vous n'êtes pas autorisé à restaurer ce document.")
         return redirect('files')
     
-    # Créer une nouvelle version basée sur l'ancienne
-    from django.core.files.base import ContentFile
+    # Récupérer le fichier de l'ancienne version
+    old_file = version.file
     
-    with version.file.open('rb') as f:
-        file_content = ContentFile(f.read(), name=version.file.name)
+    if not old_file or not old_file.name:
+        messages.error(request, "Le fichier de cette version est introuvable.")
+        return redirect('document_versions', slug=document.slug)
     
-    document.create_version(
-        file=file_content,
-        user=request.user,
-        note=f"Restauration de la version v{version.version_number}",
-        changes_summary="Restauration d'une version antérieure"
-    )
+    try:
+        # Ouvrir le fichier de l'ancienne version
+        old_file.open('rb')
+        file_content = old_file.read()
+        old_file.close()
+        
+        from django.core.files.base import ContentFile
+        
+        # Créer un nouveau fichier avec le contenu de l'ancienne version
+        new_file = ContentFile(file_content, name=old_file.name)
+        
+        # Créer une nouvelle version (l'ancienne devient une version antérieure)
+        current_version_number = document.versions.count() + 1
+        
+        # Sauvegarder la version actuelle comme historique
+        DocumentVersion.objects.create(
+            document=document,
+            version_number=current_version_number,
+            file=document.file,
+            file_size=document.file_size,
+            uploaded_by=request.user,
+            note=f"Restauration de la version v{version.version_number}",
+            changes_summary=f"Restauration d'une version antérieure (v{version.version_number})"
+        )
+        
+        # Restaurer l'ancienne version comme version courante
+        document.file = new_file
+        document.file_size = new_file.size
+        document.updated_at = timezone.now()
+        document.save()
+        
+        ActivityLog.objects.create(
+            user=request.user,
+            action=ActivityLog.Action.EDIT,
+            description=f"Restauration du document '{document.title}' à la version v{version.version_number}",
+            document=document,
+            ip_address=get_client_ip(request)
+        )
+        
+        messages.success(request, f"Version v{version.version_number} restaurée avec succès.")
+        
+    except Exception as e:
+        messages.error(request, f"Erreur lors de la restauration: {str(e)}")
     
-    ActivityLog.objects.create(
-        user=request.user,
-        action=ActivityLog.Action.EDIT,
-        description=f"Restauration du document '{document.title}' à la version v{version.version_number}",
-        document=document,
-        ip_address=get_client_ip(request)
-    )
-    
-    messages.success(request, f"Version v{version.version_number} restaurée avec succès.")
     return redirect('document_versions', slug=document.slug)
-
 
 @login_required
 def backup_management(request):

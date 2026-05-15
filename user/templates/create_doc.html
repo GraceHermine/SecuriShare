@@ -98,13 +98,24 @@
         color: #1e293b;
     }
     
+    /* Styles pour les selects multiples */
     select[multiple] {
         min-height: 150px;
+        width: 100%;
+        padding: 8px;
+        border: 2px solid #e2e8f0;
+        border-radius: 12px;
+        font-size: 0.9rem;
     }
     
     select[multiple] option {
         padding: 10px;
         border-bottom: 1px solid #e2e8f0;
+        cursor: pointer;
+    }
+    
+    select[multiple] option:hover {
+        background: #eef2ff;
     }
     
     select[multiple] option:checked {
@@ -112,8 +123,50 @@
         color: white;
     }
     
+    /* Sélecteur amélioré avec checkboxes */
+    .multi-select-container {
+        border: 2px solid #e2e8f0;
+        border-radius: 12px;
+        max-height: 200px;
+        overflow-y: auto;
+        background: white;
+    }
+    
+    .multi-select-item {
+        display: flex;
+        align-items: center;
+        padding: 10px 15px;
+        border-bottom: 1px solid #e2e8f0;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    
+    .multi-select-item:hover {
+        background: #f8fafc;
+    }
+    
+    .multi-select-item input {
+        margin-right: 12px;
+        transform: scale(1.1);
+        cursor: pointer;
+    }
+    
+    .multi-select-item label {
+        flex: 1;
+        cursor: pointer;
+        margin: 0;
+        font-weight: normal;
+    }
+    
     .card-body {
         padding: 30px;
+    }
+    
+    .help-text {
+        display: block;
+        margin-top: 8px;
+        font-size: 0.7rem;
+        color: #64748b;
     }
 </style>
 {% endblock %}
@@ -130,7 +183,7 @@
     
     <div class="card-custom">
         <div class="card-body">
-            <form method="POST" enctype="multipart/form-data">
+            <form method="POST" enctype="multipart/form-data" id="documentForm">
                 {% csrf_token %}
                 
                 <div class="form-group">
@@ -190,24 +243,40 @@
                     </label>
                 </div>
                 
+                <!-- Sélecteur pour départements (version améliorée avec checkboxes) -->
                 <div id="department-select" class="dynamic-select">
                     <label class="form-label">Sélectionner les départements concernés</label>
-                    <select name="departments" multiple class="form-control-custom" size="5">
+                    <div class="multi-select-container" id="department-list">
                         {% for dept in departments %}
-                        <option value="{{ dept.id }}">{{ dept.name }}</option>
+                        <div class="multi-select-item" onclick="toggleDepartment(this)">
+                            <input type="checkbox" name="departments" value="{{ dept.id }}" id="dept_{{ dept.id }}">
+                            <label for="dept_{{ dept.id }}">{{ dept.name }}</label>
+                        </div>
+                        {% empty %}
+                        <div class="multi-select-item">
+                            <span class="text-muted">Aucun département disponible</span>
+                        </div>
                         {% endfor %}
-                    </select>
-                    <small class="text-muted d-block mt-1">Maintenez Ctrl/Cmd pour sélectionner plusieurs départements</small>
+                    </div>
+                    <small class="help-text">Cliquez pour sélectionner/désélectionner un département</small>
                 </div>
                 
+                <!-- Sélecteur pour utilisateurs (version améliorée avec checkboxes) -->
                 <div id="users-select" class="dynamic-select">
                     <label class="form-label">Sélectionner les destinataires</label>
-                    <select name="users" multiple class="form-control-custom" size="6">
+                    <div class="multi-select-container" id="users-list">
                         {% for u in users %}
-                        <option value="{{ u.id }}">{{ u.full_name }} - {{ u.email }}</option>
+                        <div class="multi-select-item" onclick="toggleUser(this)">
+                            <input type="checkbox" name="users" value="{{ u.id }}" id="user_{{ u.id }}">
+                            <label for="user_{{ u.id }}">{{ u.full_name }} - {{ u.email }}</label>
+                        </div>
+                        {% empty %}
+                        <div class="multi-select-item">
+                            <span class="text-muted">Aucun autre utilisateur disponible</span>
+                        </div>
                         {% endfor %}
-                    </select>
-                    <small class="text-muted d-block mt-1">Maintenez Ctrl/Cmd pour sélectionner plusieurs personnes</small>
+                    </div>
+                    <small class="help-text">Cliquez pour sélectionner/désélectionner un utilisateur</small>
                 </div>
                 
                 <div class="mt-4 d-flex gap-3">
@@ -252,14 +321,52 @@
             departmentDiv.classList.add('show');
         } else if (departmentDiv) {
             departmentDiv.classList.remove('show');
+            // Décocher tous les départements si la case est décochée
+            document.querySelectorAll('input[name="departments"]').forEach(cb => cb.checked = false);
         }
         
         if (checkboxSpecific && checkboxSpecific.checked) {
             usersDiv.classList.add('show');
         } else if (usersDiv) {
             usersDiv.classList.remove('show');
+            // Décocher tous les utilisateurs si la case est décochée
+            document.querySelectorAll('input[name="users"]').forEach(cb => cb.checked = false);
         }
     }
+    
+    // Fonction pour toggle les départements
+    function toggleDepartment(element) {
+        const checkbox = element.querySelector('input');
+        if (checkbox) {
+            checkbox.checked = !checkbox.checked;
+            if (checkbox.checked) {
+                element.style.background = '#eef2ff';
+            } else {
+                element.style.background = '';
+            }
+        }
+    }
+    
+    // Fonction pour toggle les utilisateurs
+    function toggleUser(element) {
+        const checkbox = element.querySelector('input');
+        if (checkbox) {
+            checkbox.checked = !checkbox.checked;
+            if (checkbox.checked) {
+                element.style.background = '#eef2ff';
+            } else {
+                element.style.background = '';
+            }
+        }
+    }
+    
+    // Ajouter l'effet visuel au clic sur les items
+    document.querySelectorAll('.multi-select-item').forEach(item => {
+        const cb = item.querySelector('input');
+        if (cb && cb.checked) {
+            item.style.background = '#eef2ff';
+        }
+    });
     
     options.forEach(opt => {
         const checkbox = opt.querySelector('input');
