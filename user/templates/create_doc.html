@@ -1,0 +1,280 @@
+{% extends 'base/base_user.html' %}
+{% load static %}
+
+{% block title %}Nouveau document - DocuSafe{% endblock %}
+
+{% block extra_css %}
+<style>
+    .form-container {
+        max-width: 900px;
+        margin: 0 auto;
+    }
+    
+    .page-header {
+        margin-bottom: 25px;
+    }
+    
+    .page-header h2 {
+        font-size: 1.5rem;
+        margin-bottom: 5px;
+    }
+    
+    .page-header p {
+        color: #64748b;
+        margin: 0;
+    }
+    
+    .permission-checkbox {
+        display: flex;
+        align-items: center;
+        padding: 15px;
+        border: 2px solid #e2e8f0;
+        border-radius: 12px;
+        margin-bottom: 12px;
+        cursor: pointer;
+        transition: all 0.3s;
+        background: white;
+    }
+    
+    .permission-checkbox:hover {
+        border-color: #4f46e5;
+        background: #f8fafc;
+    }
+    
+    .permission-checkbox input {
+        margin-right: 15px;
+        transform: scale(1.2);
+        cursor: pointer;
+    }
+    
+    .permission-checkbox.selected {
+        border-color: #4f46e5;
+        background: #eef2ff;
+    }
+    
+    .option-title {
+        font-weight: 600;
+        font-size: 1rem;
+    }
+    
+    .option-desc {
+        font-size: 0.8rem;
+        color: #64748b;
+        display: block;
+    }
+    
+    .dynamic-select {
+        margin-top: 20px;
+        padding: 15px;
+        background: #f8fafc;
+        border-radius: 12px;
+        display: none;
+    }
+    
+    .dynamic-select.show {
+        display: block;
+        animation: fadeIn 0.3s ease;
+    }
+    
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    .form-group {
+        margin-bottom: 20px;
+    }
+    
+    .form-label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 600;
+        color: #1e293b;
+    }
+    
+    select[multiple] {
+        min-height: 150px;
+    }
+    
+    select[multiple] option {
+        padding: 10px;
+        border-bottom: 1px solid #e2e8f0;
+    }
+    
+    select[multiple] option:checked {
+        background: #4f46e5 linear-gradient(0deg, #4f46e5 0%, #4f46e5 100%);
+        color: white;
+    }
+    
+    .card-body {
+        padding: 30px;
+    }
+</style>
+{% endblock %}
+
+{% block main_content %}
+<div class="form-container">
+    <div class="page-header">
+        <h2>
+            <i class="fas fa-file-alt" style="color: #4f46e5;"></i> 
+            Nouveau document
+        </h2>
+        <p>Importez un fichier et choisissez sa diffusion (plusieurs choix possibles)</p>
+    </div>
+    
+    <div class="card-custom">
+        <div class="card-body">
+            <form method="POST" enctype="multipart/form-data">
+                {% csrf_token %}
+                
+                <div class="form-group">
+                    <label class="form-label">Titre du document *</label>
+                    <input type="text" name="title" class="form-control-custom" required placeholder="Ex: Contrat de vente 2024">
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Description</label>
+                    <textarea name="description" class="form-control-custom" rows="3" placeholder="Description du document..."></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Fichier *</label>
+                    <input type="file" name="file" class="form-control-custom" required accept=".pdf,.docx,.zip,.xlsx,.png,.jpg">
+                    <small class="text-muted d-block mt-1">PDF, DOCX, ZIP, XLSX, PNG, JPG (Max 100 MB)</small>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Catégorie</label>
+                    <select name="category" class="form-control-custom">
+                        <option value="contract">📄 Contrat</option>
+                        <option value="legal">⚖️ Juridique</option>
+                        <option value="financial">💰 Financier</option>
+                        <option value="hr">👥 RH</option>
+                        <option value="technical">🔧 Technique</option>
+                        <option value="other">📁 Autre</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">🔒 Types de diffusion</label>
+                    <p class="text-muted small mb-2">Vous pouvez sélectionner plusieurs options</p>
+                    
+                    <label class="permission-checkbox" id="option-global">
+                        <input type="checkbox" name="permission_types" value="global">
+                        <div>
+                            <span class="option-title">🌍 Globale</span>
+                            <span class="option-desc">Accessible à tous les utilisateurs de la plateforme</span>
+                        </div>
+                    </label>
+                    
+                    <label class="permission-checkbox" id="option-department">
+                        <input type="checkbox" name="permission_types" value="department">
+                        <div>
+                            <span class="option-title">🏢 Département</span>
+                            <span class="option-desc">Limité à certains services/départements</span>
+                        </div>
+                    </label>
+                    
+                    <label class="permission-checkbox" id="option-specific">
+                        <input type="checkbox" name="permission_types" value="specific">
+                        <div>
+                            <span class="option-title">👥 Spécifique</span>
+                            <span class="option-desc">À des personnes précises uniquement</span>
+                        </div>
+                    </label>
+                </div>
+                
+                <div id="department-select" class="dynamic-select">
+                    <label class="form-label">Sélectionner les départements concernés</label>
+                    <select name="departments" multiple class="form-control-custom" size="5">
+                        {% for dept in departments %}
+                        <option value="{{ dept.id }}">{{ dept.name }}</option>
+                        {% endfor %}
+                    </select>
+                    <small class="text-muted d-block mt-1">Maintenez Ctrl/Cmd pour sélectionner plusieurs départements</small>
+                </div>
+                
+                <div id="users-select" class="dynamic-select">
+                    <label class="form-label">Sélectionner les destinataires</label>
+                    <select name="users" multiple class="form-control-custom" size="6">
+                        {% for u in users %}
+                        <option value="{{ u.id }}">{{ u.full_name }} - {{ u.email }}</option>
+                        {% endfor %}
+                    </select>
+                    <small class="text-muted d-block mt-1">Maintenez Ctrl/Cmd pour sélectionner plusieurs personnes</small>
+                </div>
+                
+                <div class="mt-4 d-flex gap-3">
+                    <button type="submit" class="btn-custom">
+                        <i class="fas fa-cloud-upload-alt"></i> Publier
+                    </button>
+                    <a href="{% url 'files' %}" class="btn-outline-custom">
+                        <i class="fas fa-times"></i> Annuler
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    const checkboxGlobal = document.querySelector('input[value="global"]');
+    const checkboxDepartment = document.querySelector('input[value="department"]');
+    const checkboxSpecific = document.querySelector('input[value="specific"]');
+    const departmentDiv = document.getElementById('department-select');
+    const usersDiv = document.getElementById('users-select');
+    const options = document.querySelectorAll('.permission-checkbox');
+    
+    let selectedCount = 0;
+    
+    function updateUI() {
+        selectedCount = 0;
+        if (checkboxGlobal && checkboxGlobal.checked) selectedCount++;
+        if (checkboxDepartment && checkboxDepartment.checked) selectedCount++;
+        if (checkboxSpecific && checkboxSpecific.checked) selectedCount++;
+        
+        const checkboxes = [checkboxGlobal, checkboxDepartment, checkboxSpecific];
+        checkboxes.forEach(cb => {
+            if (cb && !cb.checked && selectedCount >= 2) {
+                cb.disabled = true;
+            } else if (cb) {
+                cb.disabled = false;
+            }
+        });
+        
+        if (checkboxDepartment && checkboxDepartment.checked) {
+            departmentDiv.classList.add('show');
+        } else if (departmentDiv) {
+            departmentDiv.classList.remove('show');
+        }
+        
+        if (checkboxSpecific && checkboxSpecific.checked) {
+            usersDiv.classList.add('show');
+        } else if (usersDiv) {
+            usersDiv.classList.remove('show');
+        }
+    }
+    
+    options.forEach(opt => {
+        const checkbox = opt.querySelector('input');
+        if (checkbox) {
+            checkbox.addEventListener('change', function() {
+                if (this.checked) {
+                    opt.classList.add('selected');
+                } else {
+                    opt.classList.remove('selected');
+                }
+                updateUI();
+            });
+        }
+    });
+    
+    updateUI();
+</script>
+{% endblock %}

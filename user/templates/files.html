@@ -1,0 +1,961 @@
+{% extends 'base/base_user.html' %}
+{% load static %}
+
+{% block title %}Mes documents{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Upload Card */
+    .upload-card {
+        background: white;
+        border-radius: 20px;
+        padding: 25px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        margin-bottom: 30px;
+    }
+
+    .upload-card h5 {
+        margin-bottom: 20px;
+        font-size: 1.1rem;
+    }
+
+    .upload-area {
+        border: 3px dashed #cbd5e1;
+        border-radius: 20px;
+        padding: 40px 20px;
+        text-align: center;
+        background: #f8fafc;
+        transition: all 0.3s;
+        cursor: pointer;
+    }
+
+    .upload-area:hover {
+        border-color: #4f46e5;
+        background: #eef2ff;
+    }
+
+    .upload-area.drag-over {
+        border-color: #10b981;
+        background: #d1fae5;
+    }
+
+    .upload-area i {
+        font-size: 3rem;
+        color: #94a3b8;
+        margin-bottom: 15px;
+    }
+
+    .upload-area p {
+        margin-bottom: 10px;
+        color: #475569;
+    }
+
+    .upload-btn {
+        background: linear-gradient(135deg, #4f46e5, #7c3aed);
+        border: none;
+        padding: 10px 24px;
+        border-radius: 50px;
+        color: white;
+        font-weight: 600;
+        margin-top: 15px;
+        transition: all 0.3s;
+        cursor: pointer;
+    }
+
+    .upload-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(79, 70, 229, 0.4);
+    }
+
+    /* Stats Cards */
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 20px;
+        margin-bottom: 30px;
+    }
+
+    .stat-card {
+        background: white;
+        border-radius: 20px;
+        padding: 20px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        transition: all 0.3s;
+    }
+
+    .stat-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+    }
+
+    .stat-icon {
+        width: 50px;
+        height: 50px;
+        background: linear-gradient(135deg, #e0e7ff, #c7d2fe);
+        border-radius: 15px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 15px;
+    }
+
+    .stat-icon i {
+        font-size: 1.5rem;
+        color: #4f46e5;
+    }
+
+    .stat-value {
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: #1e293b;
+        margin-bottom: 5px;
+    }
+
+    .stat-label {
+        color: #64748b;
+        font-size: 0.85rem;
+    }
+
+    /* Filter Bar */
+    .filter-bar {
+        background: white;
+        border-radius: 15px;
+        padding: 15px 20px;
+        margin-bottom: 25px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 15px;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .filter-group {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .filter-select {
+        padding: 8px 15px;
+        border: 1px solid #e2e8f0;
+        border-radius: 10px;
+        font-size: 0.85rem;
+        background: white;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+
+    .filter-select:hover {
+        border-color: #4f46e5;
+    }
+
+    .pagination-info {
+        color: #64748b;
+        font-size: 0.85rem;
+    }
+
+    /* Table Styles */
+    .table-container {
+        background: white;
+        border-radius: 20px;
+        padding: 20px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        overflow-x: auto;
+    }
+
+    .documents-table {
+        width: 100%;
+        border-collapse: collapse;
+        min-width: 800px;
+    }
+
+    .documents-table th {
+        text-align: left;
+        padding: 15px 12px;
+        background: #f8fafc;
+        color: #475569;
+        font-weight: 600;
+        font-size: 0.85rem;
+        border-bottom: 2px solid #e2e8f0;
+    }
+
+    .documents-table td {
+        padding: 15px 12px;
+        border-bottom: 1px solid #e2e8f0;
+        font-size: 0.85rem;
+        vertical-align: middle;
+    }
+
+    .documents-table tr:hover {
+        background: #f8fafc;
+    }
+
+    /* Ligne de document cliquable */
+    .clickable-row {
+        cursor: pointer;
+        transition: background 0.2s;
+    }
+    
+    .clickable-row:hover {
+        background: #f8fafc !important;
+    }
+
+    .status-badge {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 0.7rem;
+        font-weight: 600;
+    }
+
+    .status-encrypted {
+        background: #d1fae5;
+        color: #065f46;
+    }
+
+    .status-pending {
+        background: #fed7aa;
+        color: #92400e;
+    }
+
+    .status-revoked {
+        background: #fee2e2;
+        color: #991b1b;
+    }
+
+    .action-buttons {
+        display: flex;
+        gap: 8px;
+    }
+
+    .action-btn {
+        background: none;
+        border: none;
+        padding: 6px;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.2s;
+        color: #64748b;
+        position: relative;
+        z-index: 10;
+    }
+
+    .action-btn:hover {
+        background: #f1f5f9;
+        color: #4f46e5;
+    }
+
+    .action-btn.danger:hover {
+        color: #ef4444;
+    }
+    
+    .action-btn.share:hover {
+        color: #10b981;
+    }
+
+    /* Pagination */
+    .pagination {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 10px;
+        margin-top: 20px;
+        padding-top: 20px;
+        border-top: 1px solid #e2e8f0;
+    }
+
+    .pagination-btn {
+        padding: 8px 16px;
+        background: #f1f5f9;
+        border: none;
+        border-radius: 10px;
+        cursor: pointer;
+        transition: all 0.3s;
+        font-size: 0.85rem;
+    }
+
+    .pagination-btn:hover:not(:disabled) {
+        background: #4f46e5;
+        color: white;
+    }
+
+    .pagination-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    .pagination-numbers {
+        display: flex;
+        gap: 5px;
+    }
+
+    .page-number {
+        padding: 8px 14px;
+        background: #f1f5f9;
+        border: none;
+        border-radius: 10px;
+        cursor: pointer;
+        transition: all 0.3s;
+        font-size: 0.85rem;
+    }
+
+    .page-number.active {
+        background: #4f46e5;
+        color: white;
+    }
+
+    .page-number:hover:not(.active) {
+        background: #e2e8f0;
+    }
+
+    .progress {
+        height: 8px;
+        border-radius: 10px;
+        background: #e2e8f0;
+    }
+    
+    .progress-bar {
+        background: linear-gradient(135deg, #4f46e5, #7c3aed);
+        border-radius: 10px;
+        transition: width 0.3s;
+    }
+    
+    .progress-container {
+        display: none;
+        margin-top: 20px;
+    }
+
+    /* Modal Styles */
+    .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        display: none;
+        justify-content: center;
+        align-items: center;
+        z-index: 2000;
+    }
+
+    .modal {
+        background: white;
+        border-radius: 20px;
+        padding: 25px;
+        width: 90%;
+        max-width: 500px;
+        animation: modalSlideIn 0.3s ease;
+    }
+
+    @keyframes modalSlideIn {
+        from {
+            transform: translateY(-50px);
+            opacity: 0;
+        }
+        to {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    }
+
+    .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        padding-bottom: 15px;
+        border-bottom: 1px solid #e2e8f0;
+    }
+
+    .modal-header h3 {
+        margin: 0;
+        font-size: 1.2rem;
+    }
+
+    .modal-close {
+        background: none;
+        border: none;
+        font-size: 1.5rem;
+        cursor: pointer;
+        color: #94a3b8;
+    }
+
+    .modal-body {
+        margin-bottom: 20px;
+    }
+
+    .modal-footer {
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+        padding-top: 15px;
+        border-top: 1px solid #e2e8f0;
+    }
+
+    .modal-btn {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 10px;
+        cursor: pointer;
+        font-weight: 500;
+    }
+
+    .modal-btn.confirm {
+        background: #ef4444;
+        color: white;
+    }
+
+    .modal-btn.cancel {
+        background: #f1f5f9;
+        color: #475569;
+    }
+
+    /* Page Header */
+    .page-header {
+        margin-bottom: 30px;
+    }
+
+    .page-header h1 {
+        color: white;
+        font-size: 2rem;
+        font-weight: 700;
+        margin-bottom: 5px;
+    }
+
+    .page-header p {
+        color: rgba(255, 255, 255, 0.7);
+        font-size: 0.9rem;
+    }
+
+    /* Responsive */
+    @media (max-width: 1024px) {
+        .stats-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+
+    @media (max-width: 768px) {
+        .stats-grid {
+            grid-template-columns: 1fr;
+        }
+        .filter-bar {
+            flex-direction: column;
+            align-items: stretch;
+        }
+        .filter-group {
+            justify-content: space-between;
+        }
+        .page-header h1 {
+            font-size: 1.5rem;
+        }
+        .stat-value {
+            font-size: 1.3rem;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .filter-group {
+            flex-direction: column;
+        }
+        .filter-select {
+            width: 100%;
+        }
+        .stat-card {
+            padding: 15px;
+        }
+        .stat-icon {
+            width: 40px;
+            height: 40px;
+        }
+        .stat-icon i {
+            font-size: 1.2rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block main_content %}
+<!-- Page Header -->
+<div class="page-header">
+    <h1>Mes documents</h1>
+    <p>Accédez et gérez vos fichiers d'entreprise chiffrés avec AES-256</p>
+</div>
+
+<!-- Stats Cards -->
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-icon">
+            <i class="fas fa-file-alt"></i>
+        </div>
+        <div class="stat-value" id="totalFiles">{{ documents|length }}</div>
+        <div class="stat-label">Total des fichiers</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon">
+            <i class="fas fa-database"></i>
+        </div>
+        <div class="stat-value" id="storageUsed">0</div>
+        <div class="stat-label">Stockage utilisé / 100 Go</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon">
+            <i class="fas fa-shield-alt"></i>
+        </div>
+        <div class="stat-value">AES-256</div>
+        <div class="stat-label">Chiffrement actif</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon">
+            <i class="fas fa-clock"></i>
+        </div>
+        <div class="stat-value" id="recentActions">0</div>
+        <div class="stat-label">Actions récentes (24h)</div>
+    </div>
+</div>
+
+<!-- Filter Bar -->
+<div class="filter-bar">
+    <div class="filter-group">
+        <select class="filter-select" id="filterType">
+            <option value="all">Type: Tous</option>
+            <option value="pdf">PDF</option>
+            <option value="docx">DOCX</option>
+            <option value="xlsx">XLSX</option>
+            <option value="zip">ZIP</option>
+            <option value="png">PNG</option>
+            <option value="jpg">JPG</option>
+        </select>
+        <select class="filter-select" id="filterDate">
+            <option value="all">Date: Toutes</option>
+            <option value="today">Aujourd'hui</option>
+            <option value="week">Cette semaine</option>
+            <option value="month">Ce mois</option>
+        </select>
+        <select class="filter-select" id="filterStatus">
+            <option value="all">Statut: Tous</option>
+            <option value="encrypted">Chiffré</option>
+            <option value="pending">En attente</option>
+            <option value="revoked">Révoqué</option>
+        </select>
+    </div>
+    <div class="pagination-info" id="paginationInfo">
+        Affichage 1-{{ documents|length }} sur {{ documents|length }} documents
+    </div>
+</div>
+
+<!-- Documents Table -->
+<div class="table-container">
+    <table class="documents-table">
+        <thead>
+            <tr>
+                <th>NOM</th>
+                <th>STATUT</th>
+                <th>TAILLE</th>
+                <th>DATE</th>
+                <th>ACTIONS</th>
+            </tr>
+        </thead>
+        <tbody id="documentsTableBody">
+            {% if documents %}
+                {% for doc in documents %}
+                <tr class="clickable-row" data-slug="{{ doc.slug }}">
+                    <td>
+                        <div class="d-flex align-items-center gap-3">
+                            {% with extension=doc.file.name|lower|slice:"-3:" %}
+                                {% if extension == 'pdf' %}
+                                    <i class="fas fa-file-pdf text-danger fa-lg"></i>
+                                {% elif extension == 'doc' or extension == 'docx' %}
+                                    <i class="fas fa-file-word text-primary fa-lg"></i>
+                                {% elif extension == 'xls' or extension == 'xlsx' %}
+                                    <i class="fas fa-file-excel text-success fa-lg"></i>
+                                {% elif extension == 'zip' %}
+                                    <i class="fas fa-file-archive text-warning fa-lg"></i>
+                                {% elif extension == 'png' or extension == 'jpg' or extension == 'jpeg' %}
+                                    <i class="fas fa-file-image text-info fa-lg"></i>
+                                {% else %}
+                                    <i class="fas fa-file text-secondary fa-lg"></i>
+                                {% endif %}
+                            {% endwith %}
+                            <div>
+                                <div class="fw-semibold">{{ doc.title }}</div>
+                                <small class="text-muted">{{ doc.description|default:"Document sécurisé"|truncatechars:50 }}</small>
+                            </div>
+                        </div>
+                    </td>
+                    <td><span class="status-badge status-encrypted"><i class="fas fa-lock"></i> CHIFFRÉ</span></td>
+                    <td class="file-size" data-size="{{ doc.file_size }}">{{ doc.file_size_human }}</td>
+                    <td class="file-date">{{ doc.created_at|date:"d/m/Y" }}</td>
+                    <td>
+                        <div class="action-buttons">
+                            <button class="action-btn" onclick="event.stopPropagation(); shareDocument('{{ doc.slug }}', '{{ doc.title|escapejs }}')" title="Partager">
+                                <i class="fas fa-share-alt"></i>
+                            </button>
+                            <button class="action-btn" onclick="event.stopPropagation(); downloadFile('{{ doc.slug }}')" title="Télécharger">
+                                <i class="fas fa-download"></i>
+                            </button>
+                            <button class="action-btn danger" onclick="event.stopPropagation(); openDeleteModal('{{ doc.slug }}', '{{ doc.title|escapejs }}')" title="Supprimer">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            {% else %}
+                <tr>
+                    <td colspan="5" style="text-align: center; padding: 40px;">
+                        <i class="fas fa-folder-open fa-3x text-muted mb-3"></i>
+                        <p>Aucun document trouvé</p>
+                        <small>Glissez-déposez des fichiers ci-dessus pour commencer</small>
+                    </td>
+                </tr>
+            {% endif %}
+        </tbody>
+    </table>
+
+    {% if documents.has_other_pages %}
+    <div class="pagination">
+        {% if documents.has_previous %}
+            <button class="pagination-btn" onclick="goToPage({{ documents.previous_page_number }})">
+                <i class="fas fa-chevron-left"></i> Précédent
+            </button>
+        {% else %}
+            <button class="pagination-btn" disabled>
+                <i class="fas fa-chevron-left"></i> Précédent
+            </button>
+        {% endif %}
+        
+        <div class="pagination-numbers">
+            {% for i in documents.paginator.page_range %}
+                {% if i == documents.number %}
+                    <button class="page-number active">{{ i }}</button>
+                {% else %}
+                    <button class="page-number" onclick="goToPage({{ i }})">{{ i }}</button>
+                {% endif %}
+            {% endfor %}
+        </div>
+        
+        {% if documents.has_next %}
+            <button class="pagination-btn" onclick="goToPage({{ documents.next_page_number }})">
+                Suivant <i class="fas fa-chevron-right"></i>
+            </button>
+        {% else %}
+            <button class="pagination-btn" disabled>
+                Suivant <i class="fas fa-chevron-right"></i>
+            </button>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+
+<!-- Delete Modal -->
+<div class="modal-overlay" id="deleteModal">
+    <div class="modal">
+        <div class="modal-header">
+            <h3>Confirmer la suppression</h3>
+            <button class="modal-close" onclick="closeDeleteModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <p>Êtes-vous sûr de vouloir supprimer <strong id="deleteFileName"></strong> ?</p>
+            <p class="text-danger small">Cette action est irréversible.</p>
+        </div>
+        <div class="modal-footer">
+            <button class="modal-btn cancel" onclick="closeDeleteModal()">Annuler</button>
+            <button class="modal-btn confirm" id="confirmDeleteBtn">Supprimer</button>
+        </div>
+    </div>
+</div>
+
+{% csrf_token %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// ============================================================
+// VARIABLES GLOBALES
+// ============================================================
+
+const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
+let currentDeleteSlug = null;
+
+// ============================================================
+// CALCUL DU STOCKAGE - DIRECTEMENT DEPUIS LES DONNEES DJANGO
+// ============================================================
+
+function calculateStorage() {
+    let totalBytes = 0;
+    const sizeElements = document.querySelectorAll('.file-size');
+    
+    sizeElements.forEach(el => {
+        const sizeAttr = el.getAttribute('data-size');
+        if (sizeAttr) {
+            totalBytes += parseInt(sizeAttr) || 0;
+        } else {
+            // Fallback: parser le texte
+            const sizeText = el.innerText;
+            const match = sizeText.match(/(\d+(?:\.\d+)?)\s*([KMGT]?B?)/i);
+            if (match) {
+                let value = parseFloat(match[1]);
+                const unit = match[2].toUpperCase();
+                if (unit === 'KB' || unit === 'KO') totalBytes += value * 1024;
+                else if (unit === 'MB' || unit === 'MO') totalBytes += value * 1024 * 1024;
+                else if (unit === 'GB' || unit === 'GO') totalBytes += value * 1024 * 1024 * 1024;
+            }
+        }
+    });
+    
+    const storageGB = (totalBytes / (1024 * 1024 * 1024)).toFixed(2);
+    document.getElementById('storageUsed').innerText = storageGB;
+    
+    // Actions récentes = nombre total de fichiers
+    const totalFiles = document.querySelectorAll('.clickable-row').length;
+    document.getElementById('recentActions').innerText = totalFiles;
+}
+
+// ============================================================
+// LIGNES CLIQUABLES - REDIRECTION VERS VIEW_DOCUMENT
+// ============================================================
+
+function initClickableRows() {
+    document.querySelectorAll('.clickable-row').forEach(row => {
+        row.addEventListener('click', function(e) {
+            // Ne pas déclencher si on clique sur un bouton d'action
+            if (e.target.closest('.action-btn')) return;
+            const slug = this.getAttribute('data-slug');
+            if (slug) {
+                window.location.href = `/user/view/${slug}/`;
+            }
+        });
+    });
+}
+
+// ============================================================
+// ACTIONS SUR LES DOCUMENTS
+// ============================================================
+
+window.viewDocument = function(slug) {
+    window.location.href = `/user/view/${slug}/`;
+};
+
+window.downloadFile = function(slug) {
+    window.location.href = `/user/api/download/${slug}/`;
+};
+
+window.shareDocument = function(slug, title) {
+    window.location.href = `/user/share/${slug}/`;
+};
+
+window.openDeleteModal = function(slug, name) {
+    currentDeleteSlug = slug;
+    document.getElementById('deleteFileName').innerHTML = name;
+    document.getElementById('deleteModal').style.display = 'flex';
+};
+
+window.closeDeleteModal = function() {
+    document.getElementById('deleteModal').style.display = 'none';
+    currentDeleteSlug = null;
+};
+
+document.getElementById('confirmDeleteBtn')?.addEventListener('click', async () => {
+    if (currentDeleteSlug) {
+        try {
+            const response = await fetch(`/user/api/delete/${currentDeleteSlug}/`, {
+                method: 'DELETE',
+                headers: { 'X-CSRFToken': csrfToken }
+            });
+            const data = await response.json();
+            if (data.success) {
+                showMessage('Fichier supprimé avec succès', 'success');
+                setTimeout(() => window.location.reload(), 1000);
+                closeDeleteModal();
+            } else {
+                showMessage(data.error || 'Erreur lors de la suppression', 'danger');
+            }
+        } catch (error) {
+            showMessage('Erreur lors de la suppression', 'danger');
+        }
+    }
+});
+
+// ============================================================
+// FILTRES
+// ============================================================
+
+function applyFilters() {
+    const typeFilter = document.getElementById('filterType')?.value || 'all';
+    const dateFilter = document.getElementById('filterDate')?.value || 'all';
+    const rows = document.querySelectorAll('.clickable-row');
+    
+    let visibleCount = 0;
+    const today = new Date();
+    
+    rows.forEach(row => {
+        let show = true;
+        
+        // Filtre par type (basé sur l'icône)
+        if (typeFilter !== 'all') {
+            const icon = row.querySelector('td:first-child i');
+            let fileType = 'other';
+            if (icon?.classList.contains('fa-file-pdf')) fileType = 'pdf';
+            else if (icon?.classList.contains('fa-file-word')) fileType = 'docx';
+            else if (icon?.classList.contains('fa-file-excel')) fileType = 'xlsx';
+            else if (icon?.classList.contains('fa-file-archive')) fileType = 'zip';
+            else if (icon?.classList.contains('fa-file-image')) fileType = 'png';
+            else if (icon?.classList.contains('fa-file-powerpoint')) fileType = 'pptx';
+            else if (icon?.classList.contains('fa-file-video')) fileType = 'mp4';
+            else if (icon?.classList.contains('fa-file-audio')) fileType = 'mp3';
+            else if (icon?.classList.contains('fa-file-code')) fileType = 'code';
+
+            if (fileType !== typeFilter) show = false;
+        }
+        
+        // Filtre par date
+        if (show && dateFilter !== 'all') {
+            const dateCell = row.querySelector('.file-date');
+            if (dateCell) {
+                const dateText = dateCell.innerText;
+                const dateParts = dateText.split('/');
+                if (dateParts.length === 3) {
+                    const fileDate = new Date(dateParts[2], dateParts[1] - 1, dateParts[0]);
+                    const diffDays = Math.floor((today - fileDate) / (1000 * 60 * 60 * 24));
+                    
+                    if (dateFilter === 'today' && diffDays > 0) show = false;
+                    else if (dateFilter === 'week' && diffDays > 7) show = false;
+                    else if (dateFilter === 'month' && diffDays > 30) show = false;
+                }
+            }
+        }
+        
+        row.style.display = show ? '' : 'none';
+        if (show) visibleCount++;
+    });
+    
+    // Mettre à jour l'info de pagination
+    const paginationInfo = document.getElementById('paginationInfo');
+    if (paginationInfo) {
+        paginationInfo.innerHTML = `Affichage 1-${visibleCount} sur ${visibleCount} documents`;
+    }
+}
+
+function resetFilters() {
+    document.getElementById('filterType').value = 'all';
+    document.getElementById('filterDate').value = 'all';
+    document.getElementById('filterStatus').value = 'all';
+    applyFilters();
+}
+
+// ============================================================
+// PAGINATION
+// ============================================================
+
+function goToPage(page) {
+    const url = new URL(window.location.href);
+    url.searchParams.set('page', page);
+    window.location.href = url.toString();
+}
+
+// ============================================================
+// UPLOAD DE FICHIER
+// ============================================================
+
+function showMessage(message, type = 'success') {
+    const toast = document.createElement('div');
+    toast.className = `toast-message alert alert-${type}`;
+    toast.style.cssText = 'position: fixed; bottom: 20px; right: 20px; z-index: 9999; min-width: 250px; border-radius: 12px; padding: 12px 20px; background: white; box-shadow: 0 4px 20px rgba(0,0,0,0.15);';
+    toast.innerHTML = `<div class="d-flex align-items-center"><i class="fas ${type === 'success' ? 'fa-check-circle text-success' : 'fa-exclamation-circle text-danger'} me-2"></i><span>${message}</span></div>`;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 4000);
+}
+
+const uploadArea = document.getElementById('uploadArea');
+const fileInput = document.getElementById('fileInput');
+const selectBtn = document.getElementById('selectFilesBtn');
+
+if (uploadArea) {
+    uploadArea.addEventListener('click', () => fileInput?.click());
+}
+if (selectBtn) {
+    selectBtn.addEventListener('click', (e) => { e.stopPropagation(); fileInput?.click(); });
+}
+if (fileInput) {
+    fileInput.addEventListener('change', async (e) => {
+        if (e.target.files.length) {
+            const file = e.target.files[0];
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('title', file.name);
+            
+            const response = await fetch('/user/api/upload/', {
+                method: 'POST',
+                body: formData,
+                headers: { 'X-CSRFToken': csrfToken }
+            });
+            
+            const data = await response.json();
+            if (data.success) {
+                showMessage('Fichier uploadé avec succès', 'success');
+                setTimeout(() => window.location.reload(), 1000);
+            } else {
+                showMessage(data.error || 'Erreur', 'danger');
+            }
+            fileInput.value = '';
+        }
+    });
+}
+
+// ============================================================
+// DRAG & DROP
+// ============================================================
+
+if (uploadArea) {
+    uploadArea.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        uploadArea.classList.add('drag-over');
+    });
+    
+    uploadArea.addEventListener('dragleave', () => {
+        uploadArea.classList.remove('drag-over');
+    });
+    
+    uploadArea.addEventListener('drop', async (e) => {
+        e.preventDefault();
+        uploadArea.classList.remove('drag-over');
+        
+        if (e.dataTransfer.files.length) {
+            const file = e.dataTransfer.files[0];
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('title', file.name);
+            
+            const response = await fetch('/user/api/upload/', {
+                method: 'POST',
+                body: formData,
+                headers: { 'X-CSRFToken': csrfToken }
+            });
+            
+            const data = await response.json();
+            if (data.success) {
+                showMessage('Fichier uploadé avec succès', 'success');
+                setTimeout(() => window.location.reload(), 1000);
+            } else {
+                showMessage(data.error || 'Erreur', 'danger');
+            }
+        }
+    });
+}
+
+// ============================================================
+// INITIALISATION
+// ============================================================
+
+document.addEventListener('DOMContentLoaded', function() {
+    calculateStorage();
+    initClickableRows();
+    
+    // Ajouter les écouteurs de filtres
+    document.getElementById('filterType')?.addEventListener('change', applyFilters);
+    document.getElementById('filterDate')?.addEventListener('change', applyFilters);
+    document.getElementById('filterStatus')?.addEventListener('change', applyFilters);
+});
+</script>
+{% endblock %}

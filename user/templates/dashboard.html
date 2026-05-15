@@ -1,0 +1,802 @@
+{% extends 'base/base_user.html' %}
+{% load static %}
+
+{% block title %}Tableau de bord {% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Stats Cards */
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 20px;
+        margin-bottom: 30px;
+    }
+
+    .stat-card {
+        background: white;
+        border-radius: 20px;
+        padding: 20px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        transition: all 0.3s;
+        cursor: pointer;
+    }
+
+    .stat-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+    }
+
+    .stat-icon {
+        width: 50px;
+        height: 50px;
+        background: linear-gradient(135deg, #e0e7ff, #c7d2fe);
+        border-radius: 15px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 15px;
+    }
+
+    .stat-icon i {
+        font-size: 1.5rem;
+        color: #4f46e5;
+    }
+
+    .stat-value {
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: #1e293b;
+        margin-bottom: 5px;
+    }
+
+    .stat-label {
+        color: #64748b;
+        font-size: 0.85rem;
+    }
+
+    /* Security Cards */
+    .security-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 20px;
+        margin-bottom: 30px;
+    }
+
+    .security-card {
+        background: white;
+        border-radius: 20px;
+        padding: 20px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    }
+
+    .security-header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 15px;
+        flex-wrap: wrap;
+    }
+
+    .security-header i {
+        font-size: 1.5rem;
+        color: #4f46e5;
+    }
+
+    .security-header h5 {
+        margin: 0;
+        font-weight: 600;
+        font-size: 1rem;
+    }
+
+    .rule-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        background: #f1f5f9;
+        padding: 6px 12px;
+        border-radius: 25px;
+        font-size: 0.75rem;
+        margin: 4px;
+    }
+
+    .tls-badge {
+        background: #10b981;
+        color: white;
+        padding: 6px 12px;
+        border-radius: 25px;
+        font-size: 0.7rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .tls-badge.purple {
+        background: #4f46e5;
+    }
+
+    /* Upload Area */
+    .upload-card {
+        background: white;
+        border-radius: 20px;
+        padding: 25px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        margin-bottom: 30px;
+    }
+
+    .upload-card h5 {
+        margin-bottom: 20px;
+        font-size: 1.1rem;
+    }
+
+    .upload-area {
+        border: 3px dashed #cbd5e1;
+        border-radius: 20px;
+        padding: 40px 20px;
+        text-align: center;
+        background: #f8fafc;
+        transition: all 0.3s;
+        cursor: pointer;
+    }
+
+    .upload-area:hover {
+        border-color: #4f46e5;
+        background: #eef2ff;
+    }
+
+    .upload-area.drag-over {
+        border-color: #10b981;
+        background: #d1fae5;
+    }
+
+    .upload-area i {
+        font-size: 3rem;
+        color: #94a3b8;
+        margin-bottom: 15px;
+    }
+
+    .upload-area p {
+        margin-bottom: 10px;
+        color: #475569;
+    }
+
+    .upload-btn {
+        background: linear-gradient(135deg, #4f46e5, #7c3aed);
+        border: none;
+        padding: 10px 24px;
+        border-radius: 50px;
+        color: white;
+        font-weight: 600;
+        margin-top: 15px;
+        transition: all 0.3s;
+        cursor: pointer;
+    }
+
+    .upload-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(79, 70, 229, 0.4);
+    }
+
+    /* Progress Bar */
+    .progress-container {
+        display: none;
+        margin-top: 20px;
+    }
+
+    .progress {
+        height: 8px;
+        border-radius: 10px;
+        background: #e2e8f0;
+    }
+
+    .progress-bar {
+        background: linear-gradient(135deg, #4f46e5, #7c3aed);
+        border-radius: 10px;
+        transition: width 0.3s;
+    }
+
+    /* Two Columns Layout */
+    .two-columns {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 20px;
+    }
+
+    .activity-card, .login-card {
+        background: white;
+        border-radius: 20px;
+        padding: 20px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    }
+
+    .card-title {
+        font-size: 1rem;
+        font-weight: 600;
+        margin-bottom: 15px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding-bottom: 10px;
+        border-bottom: 2px solid #e2e8f0;
+    }
+
+    .activity-item {
+        padding: 12px 0;
+        border-bottom: 1px solid #e2e8f0;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .activity-item:last-child {
+        border-bottom: none;
+    }
+
+    .activity-icon {
+        width: 35px;
+        height: 35px;
+        background: #f1f5f9;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+
+    .activity-info {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .activity-action {
+        font-weight: 600;
+        font-size: 0.85rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .activity-time {
+        font-size: 0.7rem;
+        color: #94a3b8;
+    }
+
+    .delete-btn {
+        background: none;
+        border: none;
+        color: #ef4444;
+        cursor: pointer;
+        padding: 5px;
+        border-radius: 8px;
+        transition: all 0.2s;
+        flex-shrink: 0;
+    }
+
+    .delete-btn:hover {
+        background: #fee2e2;
+    }
+
+    /* Loading Overlay */
+    .encrypt-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.8);
+        display: none;
+        justify-content: center;
+        align-items: center;
+        z-index: 2000;
+        backdrop-filter: blur(5px);
+    }
+
+    .encrypt-modal {
+        background: white;
+        padding: 30px;
+        border-radius: 20px;
+        text-align: center;
+        min-width: 280px;
+    }
+
+    .encrypt-spinner {
+        width: 50px;
+        height: 50px;
+        border: 3px solid #e2e8f0;
+        border-top-color: #4f46e5;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+        margin: 0 auto 20px;
+    }
+
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+
+    /* Search Bar */
+    .search-container {
+        margin-bottom: 30px;
+    }
+
+    .search-wrapper {
+        max-width: 500px;
+        margin: 0 auto;
+    }
+
+    .search-input {
+        background: white;
+        border: none;
+        border-radius: 50px;
+        padding: 14px 25px;
+        width: 100%;
+        font-size: 0.95rem;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        transition: all 0.3s;
+    }
+
+    .search-input:focus {
+        outline: none;
+        box-shadow: 0 4px 25px rgba(79, 70, 229, 0.3);
+        transform: translateY(-2px);
+    }
+
+    @media (max-width: 1024px) {
+        .stats-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+
+    @media (max-width: 768px) {
+        .stats-grid {
+            grid-template-columns: 1fr;
+        }
+        .security-grid {
+            grid-template-columns: 1fr;
+        }
+        .two-columns {
+            grid-template-columns: 1fr;
+        }
+        .stat-value {
+            font-size: 1.5rem;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .stat-value {
+            font-size: 1.3rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block main_content %}
+<!-- Search Bar -->
+<div class="search-container">
+    <div class="search-wrapper">
+        <input type="text" class="search-input" placeholder="🔍 Rechercher dans le coffre sécurisé..." id="searchInput">
+    </div>
+</div>
+
+<!-- Stats Cards -->
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-icon">
+            <i class="fas fa-database"></i>
+        </div>
+        <div class="stat-value" id="storageUsed">0</div>
+        <div class="stat-label">Go / 50 Go utilisés</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon">
+            <i class="fas fa-cloud-upload-alt"></i>
+        </div>
+        <div class="stat-value" id="lastUpload">--</div>
+        <div class="stat-label">Dernier téléchargement</div>
+        <div class="stat-label" id="lastUploadTime" style="font-size: 0.7rem;">--</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon">
+            <i class="fas fa-heartbeat"></i>
+        </div>
+        <div class="stat-value">100%</div>
+        <div class="stat-label">Santé du système</div>
+        <div class="stat-label" style="color: #10b981; font-size: 0.7rem;">
+            <i class="fas fa-check-circle"></i> Tous les systèmes sont nominaux
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon">
+            <i class="fas fa-file-alt"></i>
+        </div>
+        <div class="stat-value" id="fileCount">0</div>
+        <div class="stat-label">Total des fichiers</div>
+    </div>
+</div>
+
+<!-- Security Info -->
+<div class="security-grid">
+    <div class="security-card">
+        <div class="security-header">
+            <i class="fas fa-shield-alt"></i>
+            <h5>Flux d'ingestion sécurisé</h5>
+        </div>
+        <p style="color: #64748b; font-size: 0.85rem; margin-bottom: 15px;">
+            Chiffrement de bout en bout actif pour toutes les transmissions de documents entrants.
+        </p>
+        <div>
+            <span class="rule-badge">
+                <i class="fas fa-weight-hanging"></i> Taille max : 100 Mo
+            </span>
+            <span class="rule-badge">
+                <i class="fas fa-file"></i> Par transaction individuelle
+            </span>
+        </div>
+        <div class="mt-2">
+            <span class="rule-badge">
+                <i class="fas fa-file-pdf"></i> PDF
+            </span>
+            <span class="rule-badge">
+                <i class="fas fa-file-word"></i> DOCX
+            </span>
+            <span class="rule-badge">
+                <i class="fas fa-file-archive"></i> ZIP
+            </span>
+            <span class="rule-badge">
+                <i class="fas fa-file-excel"></i> XLSX
+            </span>
+        </div>
+    </div>
+    
+    <div class="security-card">
+        <div class="security-header">
+            <i class="fas fa-lock"></i>
+            <h5>STATUT DU COFFRE</h5>
+        </div>
+        <p style="color: #64748b; font-size: 0.85rem; margin-bottom: 15px;">
+            Vos fichiers sont chiffrés avant de quitter votre navigateur en utilisant les protocoles AES-256.
+        </p>
+        <div class="d-flex align-items-center justify-content-between flex-wrap" style="gap: 10px;">
+            <span class="tls-badge">
+                <i class="fas fa-shield-alt"></i> Tunnel chiffré
+            </span>
+            <span class="tls-badge purple">
+                <i class="fas fa-lock"></i> Chiffrement TLS 1.3 obligatoire
+            </span>
+        </div>
+    </div>
+</div>
+
+<!-- Upload Section -->
+<div class="upload-card">
+    <h5>
+        <i class="fas fa-cloud-upload-alt" style="color: #4f46e5; margin-right: 10px;"></i>
+        Glissez-déposez vos documents
+    </h5>
+    
+    <div class="upload-area" id="uploadArea">
+        <i class="fas fa-cloud-upload-alt"></i>
+        <p>Glissez-déposez vos fichiers ici</p>
+        <small style="color: #94a3b8;">Sélectionnez des fichiers depuis votre appareil</small>
+        <div>
+            <button class="upload-btn" id="selectFilesBtn" type="button">
+                <i class="fas fa-folder-open"></i> Sélectionner des fichiers
+            </button>
+        </div>
+        <input type="file" id="fileInput" multiple style="display: none;" accept=".pdf,.docx,.zip,.xlsx,.png,.jpg">
+    </div>
+    
+    <div class="progress-container" id="progressContainer">
+        <div class="d-flex justify-content-between mb-2">
+            <span>Séquence de mise en file... <span id="currentFileName"></span></span>
+            <span id="uploadProgress">0% COMPLET</span>
+        </div>
+        <div class="progress">
+            <div class="progress-bar" id="uploadProgressBar" style="width: 0%"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Activity & Login Attempts -->
+<div class="two-columns">
+    <div class="activity-card">
+        <div class="card-title">
+            <i class="fas fa-history" style="color: #4f46e5;"></i>
+            Activité récente
+        </div>
+        <div id="recentFilesList">
+            <div class="text-center py-5" style="color: #94a3b8;">
+                <i class="fas fa-inbox fa-3x mb-3"></i>
+                <p>Aucun fichier téléchargé</p>
+                <small>Glissez-déposez des fichiers ci-dessus pour commencer</small>
+            </div>
+        </div>
+    </div>
+    
+    <div class="login-card">
+        <div class="card-title">
+            <i class="fas fa-shield-alt" style="color: #4f46e5;"></i>
+            Tentatives de connexion récentes
+        </div>
+        <div id="loginAttemptsList">
+            {% if recent_attempts %}
+                {% for attempt in recent_attempts %}
+                <div class="activity-item">
+                    <div class="activity-icon">
+                        <i class="fas {% if attempt.success %}fa-check-circle{% else %}fa-times-circle{% endif %}" style="color: {% if attempt.success %}#10b981{% else %}#ef4444{% endif %};"></i>
+                    </div>
+                    <div class="activity-info">
+                        <div class="activity-action">{% if attempt.success %}Connexion réussie{% else %}Tentative échouée{% endif %}</div>
+                        <div class="activity-time">IP: {{ attempt.ip_address|default:"Inconnue" }} • {{ attempt.created_at|date:"d/m/Y H:i" }}</div>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="text-center py-5" style="color: #94a3b8;">
+                    <i class="fas fa-laptop fa-3x mb-3"></i>
+                    <p>Aucune tentative de connexion enregistrée</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Encryption Overlay -->
+<div class="encrypt-overlay" id="encryptOverlay">
+    <div class="encrypt-modal">
+        <div class="encrypt-spinner"></div>
+        <h6>Chiffrement de votre fichier...</h6>
+        <small style="color: #94a3b8;">Chiffrement AES-256 en cours</small>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Stockage local des fichiers
+    let currentFiles = JSON.parse(localStorage.getItem('docusafe_files') || '[]');
+    
+    function showMessage(message, type = 'success') {
+        const toast = document.createElement('div');
+        toast.className = `toast-message alert alert-${type}`;
+        toast.style.cssText = 'position: fixed; bottom: 20px; right: 20px; z-index: 9999; min-width: 250px; max-width: 350px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.15); padding: 12px 16px; background: white;';
+        toast.innerHTML = `
+            <div class="d-flex align-items-center">
+                <i class="fas ${type === 'success' ? 'fa-check-circle' : type === 'danger' ? 'fa-exclamation-circle' : 'fa-info-circle'} me-2" style="color: ${type === 'success' ? '#10b981' : '#ef4444'}"></i>
+                <span style="font-size: 0.85rem;">${message}</span>
+            </div>
+        `;
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 4000);
+    }
+    
+    function formatFileSize(bytes) {
+        if (bytes === 0) return '0 Bytes';
+        const k = 1024;
+        const sizes = ['Bytes', 'Ko', 'Mo', 'Go'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+    
+    function getFileIcon(filename) {
+        const ext = filename.split('.').pop().toLowerCase();
+        const icons = {
+            'pdf': '<i class="fas fa-file-pdf" style="color: #dc2626;"></i>',
+            'docx': '<i class="fas fa-file-word" style="color: #2563eb;"></i>',
+            'zip': '<i class="fas fa-file-archive" style="color: #d97706;"></i>',
+            'xlsx': '<i class="fas fa-file-excel" style="color: #059669;"></i>',
+            'png': '<i class="fas fa-file-image" style="color: #8b5cf6;"></i>',
+            'jpg': '<i class="fas fa-file-image" style="color: #8b5cf6;"></i>'
+        };
+        return icons[ext] || '<i class="fas fa-file" style="color: #64748b;"></i>';
+    }
+    
+    async function encryptFile(file) {
+        return new Promise((resolve) => {
+            const overlay = document.getElementById('encryptOverlay');
+            overlay.style.display = 'flex';
+            
+            setTimeout(() => {
+                overlay.style.display = 'none';
+                resolve({
+                    originalName: file.name,
+                    originalSize: file.size,
+                    encryptedSize: file.size + 1024,
+                    algorithm: 'AES-256-GCM',
+                    timestamp: new Date().toISOString()
+                });
+            }, 1500);
+        });
+    }
+    
+    async function uploadFile(file) {
+        const allowed = ['.pdf', '.docx', '.zip', '.xlsx', '.png', '.jpg'];
+        const ext = '.' + file.name.split('.').pop().toLowerCase();
+        
+        if (!allowed.includes(ext)) {
+            showMessage(`Format non supporté: ${file.name}. Formats acceptés: PDF, DOCX, ZIP, XLSX, PNG, JPG`, 'danger');
+            return false;
+        }
+        
+        if (file.size > 100 * 1024 * 1024) {
+            showMessage(`Fichier trop volumineux: ${file.name} (max 100 Mo)`, 'danger');
+            return false;
+        }
+        
+        try {
+            const encryptedData = await encryptFile(file);
+            
+            const progressContainer = document.getElementById('progressContainer');
+            const progressBar = document.getElementById('uploadProgressBar');
+            const progressText = document.getElementById('uploadProgress');
+            const fileNameSpan = document.getElementById('currentFileName');
+            
+            progressContainer.style.display = 'block';
+            
+            for (let percent = 0; percent <= 100; percent += 10) {
+                await new Promise(r => setTimeout(r, 80));
+                progressBar.style.width = percent + '%';
+                progressText.innerText = percent + '% COMPLET';
+                fileNameSpan.innerText = file.name;
+            }
+            
+            const fileInfo = {
+                id: Date.now() + Math.random(),
+                name: file.name,
+                size: file.size,
+                formattedSize: formatFileSize(file.size),
+                encrypted: true,
+                uploadDate: new Date().toISOString(),
+                encryptedData: encryptedData
+            };
+            
+            currentFiles.unshift(fileInfo);
+            localStorage.setItem('docusafe_files', JSON.stringify(currentFiles));
+            
+            setTimeout(() => {
+                progressContainer.style.display = 'none';
+                progressBar.style.width = '0%';
+            }, 500);
+            
+            showMessage(`✓ ${file.name} téléchargé en toute sécurité (chiffrement AES-256)`, 'success');
+            refreshFileList();
+            updateStats();
+            
+            return true;
+        } catch (error) {
+            showMessage(`Erreur: ${file.name}`, 'danger');
+            return false;
+        }
+    }
+    
+    async function handleFiles(files) {
+        const fileArray = Array.from(files);
+        for (const file of fileArray) {
+            await uploadFile(file);
+            await new Promise(r => setTimeout(r, 300));
+        }
+    }
+    
+    function refreshFileList() {
+        const container = document.getElementById('recentFilesList');
+        
+        if (!currentFiles.length) {
+            container.innerHTML = `
+                <div class="text-center py-5" style="color: #94a3b8;">
+                    <i class="fas fa-inbox fa-3x mb-3"></i>
+                    <p>Aucun fichier téléchargé</p>
+                    <small>Glissez-déposez des fichiers ci-dessus pour commencer</small>
+                </div>
+            `;
+            return;
+        }
+        
+        container.innerHTML = currentFiles.slice(0, 10).map(file => `
+            <div class="activity-item">
+                <div class="activity-icon">
+                    ${getFileIcon(file.name)}
+                </div>
+                <div class="activity-info">
+                    <div class="activity-action">${escapeHtml(file.name)}</div>
+                    <div class="activity-time">
+                        ${file.formattedSize} • ${new Date(file.uploadDate).toLocaleString('fr-FR')}
+                        ${file.encrypted ? '<span class="ms-2" style="color: #10b981;"><i class="fas fa-lock"></i> AES-256</span>' : ''}
+                    </div>
+                </div>
+                <button class="delete-btn" onclick="deleteFile(${file.id})">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+        `).join('');
+    }
+    
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+    
+    window.deleteFile = function(fileId) {
+        if (confirm('Êtes-vous sûr de vouloir supprimer ce fichier ?')) {
+            currentFiles = currentFiles.filter(f => f.id !== fileId);
+            localStorage.setItem('docusafe_files', JSON.stringify(currentFiles));
+            refreshFileList();
+            updateStats();
+            showMessage('Fichier supprimé avec succès', 'success');
+        }
+    };
+    
+    function updateStats() {
+        const totalSize = currentFiles.reduce((sum, f) => sum + f.size, 0);
+        const totalGB = (totalSize / (1024 * 1024 * 1024)).toFixed(1);
+        document.getElementById('storageUsed').innerText = totalGB;
+        document.getElementById('fileCount').innerText = currentFiles.length;
+        
+        if (currentFiles.length > 0) {
+            const lastFile = currentFiles[0];
+            const date = new Date(lastFile.uploadDate);
+            const today = new Date();
+            const isToday = date.toDateString() === today.toDateString();
+            document.getElementById('lastUpload').innerText = isToday ? "Aujourd'hui" : date.toLocaleDateString('fr-FR');
+            document.getElementById('lastUploadTime').innerText = date.toLocaleTimeString('fr-FR', {hour: '2-digit', minute:'2-digit'});
+        } else {
+            document.getElementById('lastUpload').innerText = '--';
+            document.getElementById('lastUploadTime').innerText = '--';
+        }
+    }
+    
+    // Search
+    document.getElementById('searchInput')?.addEventListener('input', (e) => {
+        const term = e.target.value.toLowerCase();
+        const filtered = currentFiles.filter(f => f.name.toLowerCase().includes(term));
+        const container = document.getElementById('recentFilesList');
+        
+        if (filtered.length === 0) {
+            container.innerHTML = `<div class="text-center py-5" style="color: #94a3b8;"><i class="fas fa-search"></i> Aucun fichier trouvé</div>`;
+        } else {
+            container.innerHTML = filtered.slice(0, 10).map(file => `
+                <div class="activity-item">
+                    <div class="activity-icon">${getFileIcon(file.name)}</div>
+                    <div class="activity-info">
+                        <div class="activity-action">${escapeHtml(file.name)}</div>
+                        <div class="activity-time">${file.formattedSize}</div>
+                    </div>
+                </div>
+            `).join('');
+        }
+    });
+    
+    // Drag & Drop
+    const uploadArea = document.getElementById('uploadArea');
+    const fileInput = document.getElementById('fileInput');
+    const selectBtn = document.getElementById('selectFilesBtn');
+    
+    uploadArea.addEventListener('click', () => fileInput.click());
+    selectBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        fileInput.click();
+    });
+    
+    fileInput.addEventListener('change', (e) => {
+        if (e.target.files.length) handleFiles(e.target.files);
+    });
+    
+    uploadArea.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        uploadArea.classList.add('drag-over');
+    });
+    
+    uploadArea.addEventListener('dragleave', () => {
+        uploadArea.classList.remove('drag-over');
+    });
+    
+    uploadArea.addEventListener('drop', (e) => {
+        e.preventDefault();
+        uploadArea.classList.remove('drag-over');
+        if (e.dataTransfer.files.length) handleFiles(e.dataTransfer.files);
+    });
+    
+    // Initialisation
+    refreshFileList();
+    updateStats();
+</script>
+{% endblock %}

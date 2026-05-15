@@ -1,0 +1,333 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+
+
+{% block content %}
+<div class="login-container">
+    <div class="login-card">
+        <div class="login-header">
+            <h1>SHARED</h1>
+            <div class="subtitle">ENTERPRISE</div>
+        </div>
+        
+        <div class="login-body">
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+            
+            {% if blocked %}
+                <div class="alert alert-danger">
+                    ⚠️ Trop de tentatives. Réessayez dans 15 minutes.
+                </div>
+            {% endif %}
+            
+            <form method="POST" action="{% url 'login' %}">
+                {% csrf_token %}
+                
+                <div class="form-group">
+                    <label>BUSINESS EMAIL</label>
+                    <div class="input-group">
+                        <i class="fas fa-envelope input-icon"></i>
+                        <input type="email" 
+                               name="email" 
+                               class="form-control" 
+                               value="{{ email|default:'' }}"
+                               placeholder="name@company.com"
+                               required 
+                               autofocus>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label>PASSWORD</label>
+                    <div class="input-group">
+                        <i class="fas fa-lock input-icon"></i>
+                        <input type="password" 
+                               name="password" 
+                               class="form-control" 
+                               placeholder="••••••••"
+                               required>
+                    </div>
+                    <div class="forgot-password">
+                        <a href="{% url 'forgot_password' %}">Forgot password?</a>
+                    </div>
+                </div>
+                
+                <div class="checkbox-group">
+                    <input type="checkbox" name="remember" id="remember">
+                    <label for="remember">Remember this device for 30 days</label>
+                </div>
+                
+                <button type="submit" class="btn-login">
+                    → SECURE LOGIN
+                </button>
+            </form>
+            
+            <div class="divider">
+                <span>OR CONTINUE WITH</span>
+            </div>
+            
+            <div class="sso-buttons">
+                <button class="btn-sso" onclick="alert('Fonctionnalité SSO à venir')">
+                    <i class="fas fa-building"></i>
+                    SSO
+                </button>
+                <button class="btn-sso" onclick="alert('Fonctionnalité Mobile à venir')">
+                    <i class="fas fa-mobile-alt"></i>
+                    MOBILE
+                </button>
+            </div>
+            
+            <div class="enterprise-badge">
+                <small>
+                    Privacy Policy &nbsp;|&nbsp; 
+                    Terms of Service &nbsp;|&nbsp; 
+                    Security Audit
+                </small>
+                <br>
+                <small style="font-size: 10px;">
+                    © 2024 DocuSafe Enterprise. All Rights Reserved.
+                </small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .login-container {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+    
+    .login-card {
+        background: white;
+        border-radius: 20px;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        overflow: hidden;
+        width: 100%;
+        max-width: 480px;
+    }
+    
+    .login-header {
+        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+        padding: 30px;
+        text-align: center;
+        color: white;
+    }
+    
+    .login-header h1 {
+        font-size: 28px;
+        margin: 0;
+        font-weight: bold;
+    }
+    
+    .login-header .subtitle {
+        font-size: 14px;
+        opacity: 0.8;
+        margin-top: 5px;
+    }
+    
+    .login-body {
+        padding: 40px;
+    }
+    
+    .form-group {
+        margin-bottom: 25px;
+    }
+    
+    .form-group label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 600;
+        color: #333;
+        font-size: 14px;
+    }
+    
+    .input-group {
+        position: relative;
+    }
+    
+    .input-group .input-icon {
+        position: absolute;
+        left: 15px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #999;
+        z-index: 10;
+    }
+    
+    .form-control {
+        width: 100%;
+        padding: 12px 15px 12px 45px;
+        border: 2px solid #e0e0e0;
+        border-radius: 10px;
+        font-size: 14px;
+        transition: all 0.3s;
+    }
+    
+    .form-control:focus {
+        border-color: #667eea;
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(102,126,234,0.1);
+    }
+    
+    .forgot-password {
+        text-align: right;
+        margin-top: 8px;
+    }
+    
+    .forgot-password a {
+        color: #667eea;
+        text-decoration: none;
+        font-size: 13px;
+    }
+    
+    .forgot-password a:hover {
+        text-decoration: underline;
+    }
+    
+    .checkbox-group {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 25px;
+    }
+    
+    .checkbox-group input {
+        width: 18px;
+        height: 18px;
+        cursor: pointer;
+    }
+    
+    .checkbox-group label {
+        margin: 0;
+        cursor: pointer;
+        font-size: 14px;
+        color: #666;
+    }
+    
+    .btn-login {
+        width: 100%;
+        padding: 14px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border: none;
+        border-radius: 10px;
+        color: white;
+        font-size: 16px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    
+    .btn-login:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(102,126,234,0.4);
+    }
+    
+    .divider {
+        text-align: center;
+        margin: 30px 0;
+        position: relative;
+    }
+    
+    .divider::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 50%;
+        width: 100%;
+        height: 1px;
+        background: #e0e0e0;
+    }
+    
+    .divider span {
+        background: white;
+        padding: 0 15px;
+        position: relative;
+        color: #999;
+        font-size: 13px;
+    }
+    
+    .sso-buttons {
+        display: flex;
+        gap: 15px;
+        margin-bottom: 30px;
+    }
+    
+    .btn-sso {
+        flex: 1;
+        padding: 12px;
+        border: 2px solid #e0e0e0;
+        border-radius: 10px;
+        background: white;
+        cursor: pointer;
+        transition: all 0.3s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        font-weight: 600;
+    }
+    
+    .btn-sso:hover {
+        border-color: #667eea;
+        background: #f8f9ff;
+    }
+    
+    .btn-sso i {
+        font-size: 20px;
+    }
+    
+    .enterprise-badge {
+        text-align: center;
+        margin-top: 20px;
+        padding-top: 20px;
+        border-top: 1px solid #e0e0e0;
+    }
+    
+    .enterprise-badge small {
+        color: #999;
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+    
+    .alert {
+        padding: 12px;
+        border-radius: 10px;
+        margin-bottom: 20px;
+        font-size: 14px;
+    }
+    
+    .alert-danger {
+        background: #fee;
+        color: #c33;
+        border: 1px solid #fcc;
+    }
+    
+    .alert-success {
+        background: #efe;
+        color: #3c3;
+        border: 1px solid #cfc;
+    }
+    
+    @media (max-width: 768px) {
+        .login-body {
+            padding: 25px;
+        }
+        
+        .sso-buttons {
+            flex-direction: column;
+        }
+    }
+</style>
+{% endblock %}
